@@ -5,7 +5,8 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: pip install pydantic-core==2.46.4 --no-build-isolation && pip install -r requirements.txt --no-build-isolation
+    pythonVersion: "3.13.3"
+    buildCommand: pip install -r requirements.txt
     startCommand: python run.py
     envVars:
       - key: APP_NAME
@@ -18,7 +19,7 @@ services:
         value: data/telemetry.csv
       - key: HF_MODEL_ID
         value: ibm-granite/granite-3.3-8b-instruct
-      # Set these in Render dashboard — do NOT commit real values here
+      # Set these manually in Render dashboard — do NOT put real values here
       - key: HF_API_KEY
         sync: false
       - key: ALLOWED_ORIGINS
