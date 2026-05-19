@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { currentTelemetry as mockFallback } from "../data/mockData";
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws/telemetry";
+// Auto-upgrade to wss:// when page is served over https (Vercel production)
+const RAW_WS = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws/telemetry";
+const WS_URL = typeof window !== "undefined" && window.location.protocol === "https:"
+  ? RAW_WS.replace(/^ws:/, "wss:")
+  : RAW_WS;
 const RECONNECT_DELAY = 3000;
 
 export function useLiveTelemetry() {

@@ -1,7 +1,13 @@
 # 🏎️ RaceMind AI
 
 > **AI-powered Formula 1 race strategy and telemetry intelligence platform**
-> Built with IBM Granite · FastAPI · React · Recharts
+> Built with IBM Granite · FastAPI · React · Recharts · WebSocket
+
+[![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green?logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61dafb?logo=react)](https://react.dev)
+[![IBM Granite](https://img.shields.io/badge/IBM%20Granite-3.3--8b-purple)](https://huggingface.co/ibm-granite)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
 
@@ -23,44 +29,50 @@ analytics with explainable AI strategy recommendations for race engineers.**
 
 RaceMind AI is a full-stack telemetry intelligence platform that:
 
-- **Ingests** lap-by-lap telemetry data (speed, tire wear, fuel, brake temperature, lap times)
-- **Analyzes** degradation patterns, performance drops, and risk scores using an explainable analytics engine
-- **Generates** AI-powered strategy recommendations via IBM Granite instruct models
-- **Simulates** what-if scenarios (rain, delayed pit, aggressive driving) with projected race impact
-- **Explains** every recommendation in plain language through an AI Copilot chat interface
+- **Streams** live lap-by-lap telemetry via WebSocket at 1Hz (speed, tire wear, fuel, brake temperature, lap times)
+- **Analyzes** degradation patterns, performance drops, and risk scores using an explainable rule-based analytics engine
+- **Generates** AI-powered strategy recommendations via IBM Granite 3.3-8B Instruct hosted on Hugging Face
+- **Simulates** what-if scenarios (rain, delayed pit, aggressive driving, degradation +30%) with projected race impact
+- **Explains** every recommendation through a structured AI Copilot chat with rich telemetry-aware responses
+- **Alerts** engineers to live race events (Yellow Flag, Safety Car, DRS, Tire Critical) in real time
+- **Broadcasts** AI commentary that updates dynamically based on live telemetry values
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        RACEMIND AI                              │
-│                                                                 │
-│  React Frontend (Vite + Tailwind + Recharts)                   │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │Dashboard │  │Telemetry │  │AI Copilot│  │  Simulation  │  │
-│  │  Charts  │  │Stat Cards│  │  Chat    │  │  What-If     │  │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘  │
-│                         │ Axios API Layer                       │
-├─────────────────────────┼───────────────────────────────────────┤
-│  FastAPI Backend        │                                       │
-│  ┌──────────────────────▼──────────────────────────────────┐   │
-│  │  /telemetry  /analytics  /ai  /simulation               │   │
-│  └──────────────────────┬──────────────────────────────────┘   │
-│           ┌─────────────┼──────────────┐                       │
-│           ▼             ▼              ▼                        │
-│  ┌──────────────┐ ┌──────────┐ ┌────────────────────────┐     │
-│  │  Telemetry   │ │Analytics │ │  IBM Granite Service   │     │
-│  │  Service     │ │ Engine   │ │  (watsonx.ai API)      │     │
-│  │  (pandas)    │ │          │ │  granite-13b-instruct  │     │
-│  └──────────────┘ └──────────┘ └────────────────────────┘     │
-│                                         │                       │
-│                              ┌──────────▼──────────┐           │
-│                              │  Simulation Engine  │           │
-│                              │  (What-If Scenarios)│           │
-│                              └─────────────────────┘           │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          RACEMIND AI                                 │
+│                                                                      │
+│  React Frontend (Vite + Tailwind CSS v4 + Recharts)                 │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+│  │Telemetry │ │  Live    │ │AI Strategy│ │  Risk   │ │What-If  │ │
+│  │Overview  │ │  Charts  │ │  Panel   │ │Analysis │ │Simulation│ │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+│  ┌──────────────────────┐  ┌──────────────────────────────────────┐ │
+│  │   AI Copilot Chat    │  │  Race Events + AI Commentary Feed    │ │
+│  └──────────────────────┘  └──────────────────────────────────────┘ │
+│              │ Axios REST + WebSocket                                │
+├──────────────┼───────────────────────────────────────────────────────┤
+│  FastAPI Backend                                                     │
+│  ┌───────────▼──────────────────────────────────────────────────┐   │
+│  │  /telemetry  /analytics  /ai  /simulation  /ws/telemetry     │   │
+│  └───────────┬──────────────────────────────────────────────────┘   │
+│      ┌───────┼──────────────┬──────────────────┐                    │
+│      ▼       ▼              ▼                  ▼                    │
+│  ┌───────┐ ┌──────────┐ ┌──────────────┐ ┌──────────────────┐     │
+│  │Telem. │ │Analytics │ │IBM Granite   │ │Simulation Engine │     │
+│  │Service│ │Engine    │ │Service       │ │(What-If Scenarios│     │
+│  │pandas │ │rule-based│ │HF Inference  │ │4 scenario types) │     │
+│  └───────┘ └──────────┘ └──────────────┘ └──────────────────┘     │
+│                              │                                       │
+│                    ┌─────────▼──────────┐                           │
+│                    │  WebSocket Stream  │                           │
+│                    │  1Hz telemetry     │                           │
+│                    │  push to frontend  │                           │
+│                    └────────────────────┘                           │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -69,9 +81,9 @@ RaceMind AI is a full-stack telemetry intelligence platform that:
 
 | Technology | Role |
 |---|---|
-| **IBM Granite 13B Instruct v2** | Core LLM for strategy recommendations, driver coaching, and telemetry Q&A |
-| **IBM watsonx.ai** | Model hosting, IAM authentication, and inference API |
-| **IBM Prompt Engineering** | Structured `<\|system\|>/<\|user\|>/<\|assistant\|>` prompt templates for consistent JSON output |
+| **IBM Granite 3.3-8B Instruct** | Core LLM for strategy recommendations, driver coaching, and telemetry Q&A |
+| **Hugging Face Inference API** | Hosts IBM Granite model — free tier, no IBM account required |
+| **IBM Prompt Engineering** | Structured `system/user/assistant` chat message templates for consistent JSON output |
 
 ### Why IBM Granite?
 
@@ -80,6 +92,26 @@ tasks — exactly what race strategy requires. The model reliably outputs
 valid JSON with `recommendation`, `explanation`, `confidence_score`, and
 `what_if_analysis` fields, enabling deterministic frontend rendering without
 post-processing heuristics.
+
+`ibm-granite/granite-3.3-8b-instruct` is publicly available on Hugging Face,
+making it accessible without an IBM Cloud account. The backend falls back to
+pre-built mock responses automatically when no API key is configured.
+
+---
+
+## Dashboard Sections
+
+The entire app is a single unified scroll-based dashboard. Sidebar navigation
+scrolls to sections and syncs active state via `IntersectionObserver`.
+
+| Section | Contents |
+|---|---|
+| ⚡ **Telemetry Overview** | Live stat cards, race status, mini metrics, race events bar, AI commentary feed |
+| 📡 **Live Charts** | Lap time trend, tire wear degradation, speed + brake temperature |
+| 🧠 **AI Strategy** | IBM Granite recommendation, confidence meter, critical metrics, what-if table |
+| ⚠️ **Risk Analysis** | Composite risk score, tire/brake/performance/pit gauges with animated bars |
+| 🔮 **What-If Simulation** | 4 scenario cards with animated impact values, position delta, risk meters |
+| 💬 **AI Copilot Chat** | Full structured chat with rich block responses, streaming cursor, phase typing |
 
 ---
 
@@ -107,6 +139,55 @@ telemetry threshold:
 
 ---
 
+## Real-Time Architecture
+
+Live telemetry is delivered via WebSocket at `ws://localhost:8000/ws/telemetry`.
+
+```
+Backend (FastAPI)                    Frontend (React)
+─────────────────                    ────────────────
+telemetry_stream.py                  useLiveTelemetry.js
+  └─ get_live_frame()    ──1Hz──▶    ├─ data  (current frame)
+  └─ sensor noise added              ├─ history (last 50 frames)
+  └─ lap advances every 10s          └─ connected (bool)
+                                           │
+                                     All chart components
+                                     consume history[]
+                                     All stat cards
+                                     consume data{}
+```
+
+Auto-reconnect is built into the hook with a 3-second retry delay.
+All components fall back to mock data silently when the backend is offline.
+
+---
+
+## AI Copilot Response Format
+
+Responses are structured block arrays rendered by `ChatBubble.jsx`:
+
+```
+┌─────────────────────────────────────────────┐
+│ 🔴 TIRE WEAR CRITICAL — Immediate action    │  ← alert block
+├─────────────────────────────────────────────┤
+│ WEAR STATUS ─────────────────────────────── │  ← section label
+│ • Current wear    [67.4%]  critical exceeded│  ← bullet + value chip
+│ • Degradation     [+4.8%/lap]  accelerating │
+│ • Laps to failure [~2 laps]                 │
+├─────────────────────────────────────────────┤
+│ RECOMMENDATION ──────────────────────────── │
+│ Pit immediately. Confidence in completing   │  ← recommendation block
+│ 5+ laps without pace loss is 23%.          │
+├─────────────────────────────────────────────┤
+│ AI Confidence  ████████████████░░  96% High │  ← animated confidence bar
+├─────────────────────────────────────────────┤
+│ Pit now   → Tire risk eliminated  ✅        │  ← what-if block
+│ Stay out  → Lap time +1.8s/lap   ❌        │
+└─────────────────────────────────────────────┘
+```
+
+---
+
 ## Langflow Workflow
 
 See [`docs/LANGFLOW_ARCHITECTURE.md`](docs/LANGFLOW_ARCHITECTURE.md) for the
@@ -115,7 +196,8 @@ full node-by-node breakdown of the AI orchestration pipeline:
 ```
 Telemetry Input → Analytics Engine → Strategy Evaluator
     → Context Formatter → Granite Prompt Builder
-    → IBM Granite LLM → AI Recommendation Output
+    → IBM Granite LLM (via HF Inference API)
+    → JSON Parser → AI Recommendation Output
 ```
 
 ---
@@ -124,13 +206,17 @@ Telemetry Input → Analytics Engine → Strategy Evaluator
 
 > _Replace placeholders with actual screenshots before submission._
 
-| Dashboard | AI Copilot Chat |
+| Dashboard Overview | AI Copilot Chat |
 |---|---|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Chat](docs/screenshots/chat.png) |
 
-| Strategy Panel | What-If Simulation |
+| AI Strategy Panel | What-If Simulation |
 |---|---|
 | ![Strategy](docs/screenshots/strategy.png) | ![Simulation](docs/screenshots/simulation.png) |
+
+| Risk Analysis | Race Events |
+|---|---|
+| ![Risk](docs/screenshots/risk.png) | ![Events](docs/screenshots/events.png) |
 
 ---
 
@@ -138,30 +224,45 @@ Telemetry Input → Analytics Engine → Strategy Evaluator
 
 ```
 RaceMind/
-├── src/                          # React frontend
+├── src/                              # React frontend
 │   ├── components/
-│   │   ├── chat/                 # AI Copilot chat interface
-│   │   ├── layout/               # Sidebar, Header, DashboardLayout
-│   │   ├── strategy/             # AI strategy panel components
-│   │   └── telemetry/            # Charts and stat cards
-│   ├── data/                     # Mock data (offline dev)
-│   ├── hooks/api/                # useApi, useTelemetry hooks
-│   ├── pages/                    # Dashboard, AICopilot pages
-│   ├── services/                 # Axios API service layer
-│   └── types/                    # JSDoc API interfaces
+│   │   ├── chat/                     # AICopilotChat, ChatBubble, TypingIndicator
+│   │   ├── layout/                   # Sidebar, Header, DashboardLayout, SettingsModal
+│   │   ├── strategy/                 # AIStrategyWidget, WhatIfSimulationCard,
+│   │   │                             # RiskAnalysisPanel, AICopilotPreview,
+│   │   │                             # ConfidenceMeter, RiskIndicator
+│   │   ├── telemetry/                # Charts, TelemetryStatCards, RaceStatusCard,
+│   │   │                             # RaceEventsBar, RaceCommentaryFeed
+│   │   └── ui/                       # Skeleton, SectionHeader
+│   ├── data/                         # mockData.js, chatMockData.js (structured blocks)
+│   ├── hooks/
+│   │   ├── api/                      # useApi.js, useTelemetry.js (12 domain hooks)
+│   │   ├── useChat.js                # Streaming chat with phase typing
+│   │   └── useLiveTelemetry.js       # WebSocket hook with auto-reconnect
+│   ├── pages/
+│   │   └── RaceDashboard.jsx         # Unified scroll dashboard with IntersectionObserver
+│   ├── services/                     # Axios services: telemetry, analytics, ai, simulation
+│   └── types/                        # JSDoc API interfaces
 │
-├── backend/                      # FastAPI backend
+├── backend/                          # FastAPI backend
 │   ├── app/
-│   │   ├── core/                 # Settings, config
-│   │   ├── models/               # Pydantic response models
-│   │   ├── routers/              # telemetry, analytics, ai, simulation
+│   │   ├── core/config.py            # pydantic-settings, HF + env config
+│   │   ├── models/telemetry.py       # 10 Pydantic response models
+│   │   ├── routers/                  # telemetry, analytics, ai, simulation, ws
 │   │   └── services/
-│   │       ├── granite/          # IBM Granite client + prompts
-│   │       └── simulation/       # What-if engine
-│   └── data/telemetry.csv        # Mock telemetry dataset
+│   │       ├── granite/              # granite_client.py (HF API), prompts.py,
+│   │       │                         # granite_service.py, context_formatter.py
+│   │       ├── simulation/           # simulation_engine.py (4 scenarios)
+│   │       ├── analytics_service.py  # 4 explainable analytics functions
+│   │       ├── telemetry_service.py  # pandas CSV loader + queries
+│   │       └── telemetry_stream.py   # WebSocket live frame generator
+│   ├── data/telemetry.csv            # 20-lap mock telemetry dataset
+│   ├── .env                          # HF_API_KEY, model config
+│   ├── requirements.txt
+│   └── run.py                        # uvicorn entrypoint
 │
 └── docs/
-    └── LANGFLOW_ARCHITECTURE.md  # AI pipeline design
+    └── LANGFLOW_ARCHITECTURE.md      # 7-node AI pipeline design
 ```
 
 ---
@@ -170,8 +271,8 @@ RaceMind/
 
 ### Prerequisites
 - Node.js 18+
-- Python 3.11+
-- IBM watsonx.ai account (optional — mock mode works without it)
+- Python 3.11+ (tested on 3.14)
+- Hugging Face account (free — for IBM Granite AI features)
 
 ### Frontend
 
@@ -189,33 +290,34 @@ cd RaceMind/backend
 
 # Create virtual environment
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS/Linux
 
-pip install -r requirements.txt
-
-# Configure environment
-cp .env .env.local
-# Edit .env — set IBM_API_KEY, IBM_PROJECT_ID for live Granite
-# Leave IBM_API_KEY=mock for offline development
+# Install — pydantic-core must be installed first on Python 3.14
+pip install pydantic-core==2.46.4 --no-build-isolation
+pip install -r requirements.txt --no-build-isolation
 
 python run.py
 # → http://localhost:8000
-# → http://localhost:8000/docs  (Swagger UI)
+# → http://localhost:8000/docs   (Swagger UI)
+# → ws://localhost:8000/ws/telemetry  (WebSocket)
 ```
 
-### IBM Granite Configuration
+### IBM Granite via Hugging Face
+
+1. Sign up free at [huggingface.co](https://huggingface.co)
+2. Go to **Settings → Access Tokens → New token** (Inference scope)
+3. Copy the token (starts with `hf_...`)
 
 In `backend/.env`:
 
 ```env
-IBM_API_KEY=your_ibm_cloud_api_key
-IBM_WX_URL=https://us-south.ml.cloud.ibm.com
-IBM_PROJECT_ID=your_watsonx_project_id
-GRANITE_MODEL_ID=ibm/granite-13b-instruct-v2
+HF_API_KEY=hf_your_token_here
+HF_MODEL_ID=ibm-granite/granite-3.3-8b-instruct
 ```
 
-> Set `IBM_API_KEY=mock` to run fully offline with pre-built mock responses.
+> Leave `HF_API_KEY=mock` to run fully offline — all AI endpoints return
+> pre-built structured mock responses automatically.
 
 ---
 
@@ -235,20 +337,42 @@ GRANITE_MODEL_ID=ibm/granite-13b-instruct-v2
 | GET | `/ai/coaching` | IBM Granite driver coaching |
 | POST | `/ai/ask` | IBM Granite telemetry Q&A |
 | GET | `/simulation/what-if` | All 4 what-if scenario results |
+| WS | `/ws/telemetry` | Live telemetry stream at 1Hz |
 | GET | `/health` | Service health check |
 
 ---
 
-## Future Improvements
+## Key Features
 
-- **Live telemetry ingestion** via WebSocket from F1 timing APIs
-- **Multi-driver comparison** — side-by-side telemetry overlays
-- **Langflow visual editor** integration for no-code prompt pipeline editing
-- **Historical race database** — train degradation models on past race data
-- **Voice interface** — engineer speaks questions, Granite responds via TTS
-- **Pit crew coordination** — push recommendations to crew display systems
-- **Sector-level telemetry** — mini-sector speed traces and braking points
-- **Weather integration** — real-time rain probability feeding simulation engine
+### Live Telemetry
+- WebSocket stream at 1Hz with sensor noise simulation
+- Auto-reconnect with 3s retry, graceful offline fallback
+- Last 50 frames buffered for chart history
+- Lap advances every 10 real-world seconds
+
+### AI Strategy Engine
+- IBM Granite 3.3-8B via Hugging Face Inference API
+- 3 prompt templates: strategy, coaching, Q&A
+- Telemetry context formatted to ~120 tokens
+- JSON extraction with regex fallback for markdown fences
+- Automatic mock fallback on any API failure
+
+### Race Events System
+- 5 event types: Yellow Flag, Rain, Safety Car, DRS, Tire Critical
+- Events auto-inject every 12 seconds (simulated)
+- Animated glowing borders with event-specific colors
+- Dismissible with ✕
+
+### AI Commentary Feed
+- Updates every 5 seconds
+- Telemetry-aware: generates critical messages when thresholds exceeded
+- Opacity fades older entries
+- Slide-in animation on new entries
+
+### Confidence Meter
+- Count-up animation using `requestAnimationFrame` with cubic ease-out
+- Shimmer sweep across bar after fill
+- Glow shadow color matches confidence level (green/yellow/red)
 
 ---
 
@@ -257,9 +381,24 @@ GRANITE_MODEL_ID=ibm/granite-13b-instruct-v2
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite, Tailwind CSS v4, Recharts, Axios |
-| Backend | Python 3.11, FastAPI, Pandas, Pydantic v2, httpx |
-| AI | IBM Granite 13B Instruct v2 via watsonx.ai |
-| Architecture | REST API, modular services, component-based UI |
+| Backend | Python 3.14, FastAPI, Pandas, Pydantic v2, httpx, uvicorn |
+| AI | IBM Granite 3.3-8B Instruct via Hugging Face Inference API |
+| Real-time | WebSocket (FastAPI native), browser WebSocket API |
+| Architecture | REST + WebSocket, modular services, single-page scroll dashboard |
+
+---
+
+## Future Improvements
+
+- **FastF1 integration** — replace CSV with real F1 timing data via `pip install fastf1`
+- **Multi-driver comparison** — side-by-side telemetry overlays
+- **Langflow visual editor** — no-code prompt pipeline editing
+- **Historical race database** — degradation models trained on past race data
+- **Voice interface** — engineer speaks questions, Granite responds via TTS
+- **Sector-level telemetry** — mini-sector speed traces and braking points
+- **Weather API integration** — real-time rain probability feeding simulation engine
+- **Pit crew coordination** — push recommendations to crew display systems
+- **WebSocket broadcast** — multi-client support for team-wide telemetry sharing
 
 ---
 

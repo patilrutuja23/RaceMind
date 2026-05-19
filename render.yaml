@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: racemind-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install pydantic-core==2.46.4 --no-build-isolation && pip install -r requirements.txt --no-build-isolation
+    startCommand: python run.py
+    envVars:
+      - key: APP_NAME
+        value: RaceMind AI
+      - key: APP_VERSION
+        value: 1.0.0
+      - key: DEBUG
+        value: "false"
+      - key: CSV_PATH
+        value: data/telemetry.csv
+      - key: HF_MODEL_ID
+        value: ibm-granite/granite-3.3-8b-instruct
+      # Set these in Render dashboard — do NOT commit real values here
+      - key: HF_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

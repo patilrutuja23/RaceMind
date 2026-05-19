@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "RaceMind AI"
     app_version: str = "1.0.0"
-    debug: bool = True
+    debug: bool = False
     allowed_origins: str = "http://localhost:5173"
     csv_path: str = "data/telemetry.csv"
 
